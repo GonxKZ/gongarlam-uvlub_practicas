@@ -1,0 +1,57 @@
+name: Codacy Analysis
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  codacy-analysis:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.10, 3.11, 3.12]  # Para verificar compatibilidad con múltiples versiones de Python
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Check for outdated dependencies
+      run: |
+        pip list --outdated > outdated.txt
+        if [ -s outdated.txt ]; then
+          echo "Hay dependencias desactualizadas:"
+          cat outdated.txt
+          exit 1  # Fallar el workflow si hay dependencias desactualizadas
+        else
+          echo "Todas las dependencias están actualizadas."
+        fi
+
+    - name: Run pip-audit for security vulnerabilities
+      run: |
+        pip install pip-audit
+        pip-audit
+
+    - name: Run tests
+      run: |
+        # Asegúrate de ajustar este comando según tu configuración de pruebas
+        pytest
+
+    - name: Run Codacy Analysis
+      uses: codacy/codacy-analysis-cli-action@v3
+      with:
+        project_token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        # Opcional: especifica el patrón de archivos, por ejemplo:
+        # pattern: "src/**/*.py"
