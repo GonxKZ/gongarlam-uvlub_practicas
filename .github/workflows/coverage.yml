@@ -1,4 +1,4 @@
-name: Run tests with coverage
+name: Run tests and upload coverage to Coveralls
 
 on:
   push:
@@ -7,11 +7,8 @@ on:
     branches: [main, develop]
 
 jobs:
-  coverage:
+  pytest:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write  # Permitir escritura en el repositorio.
 
     services:
       mysql:
@@ -26,7 +23,7 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-    - uses: actions/checkout@v4  # Clona el repositorio en el entorno de Actions.
+    - uses: actions/checkout@v4
 
     - uses: actions/setup-python@v5
       with:
@@ -36,26 +33,26 @@ jobs:
       run: |
         sed -i '/rosemary @ file:\/\/\/app/d' requirements.txt
 
-    - name: Install Dependencies
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov coverage
+        pip install coverage coveralls
 
-    - name: Run Tests and Generate Coverage Report
+    - name: Run Tests with Coverage
+      env:
+        FLASK_ENV: testing
+        MARIADB_HOSTNAME: 127.0.0.1
+        MARIADB_PORT: 3306
+        MARIADB_TEST_DATABASE: uvlhubdb_test
+        MARIADB_USER: uvlhub_user
+        MARIADB_PASSWORD: uvlhub_password
       run: |
-        pytest --cov=. --cov-report=html:coverage-html --cov-report=xml:coverage.xml --ignore-glob='*selenium*'
+        coverage run --source=app -m pytest app/modules/ --ignore-glob='*selenium*'
 
-    - name: Save Coverage Report to Repository
+    - name: Upload Coverage to Coveralls
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
       run: |
-        mkdir -p coverage-html
-        mv coverage-html/* coverage-html/
-        ls -l coverage-html  # Verificar que los archivos están en la carpeta
-
-    - name: Commit Coverage HTML Report
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add coverage-html/
-        git commit -m "Update coverage HTML report [skip ci]" || echo "No changes to commit"
-        git push
+        coverage report
+        coveralls
