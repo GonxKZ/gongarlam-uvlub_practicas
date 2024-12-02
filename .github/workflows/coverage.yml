@@ -1,4 +1,4 @@
-name: Test Coverage with Coveralls
+name: Test Coverage with Coveralls and HTML
 
 on:
   push:
@@ -48,7 +48,16 @@ jobs:
         MARIADB_USER: uvlhub_user
         MARIADB_PASSWORD: uvlhub_password
       run: |
-        pytest app/modules/ --ignore-glob='*selenium*' --cov=app --cov-report=xml
+        pytest app/modules/ --ignore-glob='*selenium*' --cov=app --cov-report=xml --cov-report=html
+
+    - name: Store Coverage Report (HTML)
+      run: mkdir -p coverage && mv htmlcov/* coverage/
+      
+    - name: Upload Coverage HTML as Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-html
+        path: coverage/
 
     - name: Upload Coverage to Coveralls
       env:
