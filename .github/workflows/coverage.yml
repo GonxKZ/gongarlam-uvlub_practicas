@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write  # Permite a GitHub Actions hacer commits.
+      contents: write  # Permitir que el workflow haga commits.
 
     services:
       mysql:
@@ -26,7 +26,7 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4  # Clona el repositorio en el entorno de Actions.
 
     - uses: actions/setup-python@v5
       with:
@@ -65,10 +65,10 @@ jobs:
         REPORT_NUMBER=$((REPORT_NUMBER + 1))
         mv htmlcov coverage-reports/report_$REPORT_NUMBER
 
-    - name: Commit Coverage Reports
+    - name: Commit Coverage Reports to Repository
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add coverage-reports/ coverage.xml
-        git commit -m "Add coverage report #$REPORT_NUMBER" || echo "No changes to commit"
+        git add coverage-reports/
+        git commit -m "Add coverage report #$REPORT_NUMBER [skip ci]" || echo "No changes to commit"
         git push
