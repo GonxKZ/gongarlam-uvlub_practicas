@@ -13,21 +13,49 @@ jobs:
     permissions:
       contents: write  # Permitir escritura en el repositorio.
 
-    steps:
-    - uses: actions/checkout@v4
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: uvlhub_root_password
+          MYSQL_DATABASE: uvlhubdb_test
+          MYSQL_USER: uvlhub_user
+          MYSQL_PASSWORD: uvlhub_password
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-    - name: Install Python Dependencies
+    steps:
+    - uses: actions/checkout@v4  # Clona el repositorio en el entorno de Actions.
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Prepare environment
       run: |
-        python -m pip install --upgrade pip pytest pytest-cov
+        sed -i '/rosemary @ file:\/\/\/app/d' requirements.txt
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov coverage
 
     - name: Run Tests and Generate Coverage Report
       run: |
-        pytest --cov=. --cov-report=html:coverage-html --ignore-glob='*selenium*'
+        pytest --cov=. --cov-report=html:coverage-html --cov-report=xml:coverage.xml --ignore-glob='*selenium*'
+
+    - name: Save Coverage Report to Repository
+      run: |
+        mkdir -p coverage-html
+        mv coverage-html/* coverage-html/
+        ls -l coverage-html  # Verificar que los archivos están en la carpeta
 
     - name: Commit Coverage HTML Report
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         git add coverage-html/
-        git commit -m "Update coverage report [skip ci]" || echo "No changes to commit"
+        git commit -m "Update coverage HTML report [skip ci]" || echo "No changes to commit"
         git push
