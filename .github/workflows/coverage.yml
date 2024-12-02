@@ -58,17 +58,17 @@ jobs:
         coverage html
         coverage xml
 
-    - name: Save Report Incrementally to Repository
+    - name: Save Report Incrementally in Root Coverage Folder
       run: |
         mkdir -p coverage-reports
         REPORT_NUMBER=$(ls coverage-reports | grep 'report_' | wc -l)
         REPORT_NUMBER=$((REPORT_NUMBER + 1))
         mv htmlcov coverage-reports/report_$REPORT_NUMBER
 
-    - name: Commit Coverage Report
+    - name: Commit Coverage Reports
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         git add coverage-reports/ coverage.xml
-        git commit -m "Add coverage report [skip ci]" || echo "No changes to commit"
+        git commit -m "Add coverage report #$REPORT_NUMBER" || echo "No changes to commit"
         git push
